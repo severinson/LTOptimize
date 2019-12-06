@@ -1,0 +1,11 @@
+name = "LTOptimize"
+uuid = "eb179ad6-0ae5-11ea-31b4-a1334478a353"
+authors = ["Albin Severinson <albin@severinson.org>"]
+version = "0.1.0"
+
+[deps]
+Distributions = "31c24e10-a181-5473-b8eb-7969acd0382f"
+PyPlot = "d330b81b-6aea-500a-939a-2ce795aea3ee"
+Statistics = "10745b16-79ce-11e8-11f9-7d13ad32a3b2"
+StatsBase = "2913bbd2-ae8a-5f71-8c99-4fb6c76f3a91"
+Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
