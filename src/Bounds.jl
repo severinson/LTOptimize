@@ -1,18 +1,17 @@
 export logbinomial, krawtchouk, upperbound_ltfailure
 
-"""return log(binomial(n, k))"""
+"""Return log(binomial(n, k))."""
 function logbinomial(n::Integer, k::Integer)::Float64
     k <= n || return -Inf
     k != n || return zero(Float64)
     if k > (n - k)
-        rv = logfactorial(n, n-k) - logfactorial(k)
+        return logfactorial(n) - logfactorial(n-k) - logfactorial(k)
     else
-        rv = logfactorial(n, k) - logfactorial(n-k)
+        return logfactorial(n) - logfactorial(k) - logfactorial(n-k)
     end
-    return rv
 end
 
-"""evaluate the krawtchouk polynomial"""
+"""Evaluate the krawtchouk polynomial."""
 function krawtchouk(ξ; ν::Integer, ς::Integer, q::Integer)
     0 <= ς <= ν || throw(ArgumentError("ς must be in [0, ν]"))
     ξ >= 0 || throw(DomainError(ξ, "ξ must be non-negative"))
@@ -80,89 +79,89 @@ end
 
 ### lower bound - old, not sure if this is correct ###
 
-"""inner term of ltfailure_lower_reference"""
-function ltfailure_lower_reference_inner(i::Int; K::Int, ϵ::Number, Ω::Distribution{Univariate, Discrete})
-    r = 0.0
-    for d in 1:K
-        println("d=$d, K=$K, f.K=$(Ω.K)")
-        r += pdf(Ω, d) * binomial(K-i, d) / binomial(K, d)
-    end
-    r = r^(K*(1+ϵ))
-    return r
-end
+# """inner term of ltfailure_lower_reference"""
+# function ltfailure_lower_reference_inner(i::Int; K::Int, ϵ::Number, Ω::Distribution{Univariate, Discrete})
+#     r = 0.0
+#     for d in 1:K
+#         println("d=$d, K=$K, f.K=$(Ω.K)")
+#         r += pdf(Ω, d) * binomial(K-i, d) / binomial(K, d)
+#     end
+#     r = r^(K*(1+ϵ))
+#     return r
+# end
 
-"""
+# """
 
-reference implementation of ltfailure_lower. use only for testing
-ltfailure_lower.
+# reference implementation of ltfailure_lower. use only for testing
+# ltfailure_lower.
 
-"""
-function ltfailure_lower_reference(K::Int, ϵ::Number, Ω::Distribution{Univariate, Discrete})
-    println(Ω)
-    r = 0.0
-    for i in 1:K
-        r += (-1)^(i+1)*binomial(K, i) * ltfailure_lower_reference_inner(
-            i, K=K, ϵ=ϵ, Ω=Ω,
-        )
-    end
-    return r
-end
+# """
+# function ltfailure_lower_reference(K::Int, ϵ::Number, Ω::Distribution{Univariate, Discrete})
+#     println(Ω)
+#     r = 0.0
+#     for i in 1:K
+#         r += (-1)^(i+1)*binomial(K, i) * ltfailure_lower_reference_inner(
+#             i, K=K, ϵ=ϵ, Ω=Ω,
+#         )
+#     end
+#     return r
+# end
 
-"""inner term of ltfailure_lower"""
-function ltfailure_lower_inner(i::Int; K::Int, ϵ::Number, Ω::Distribution{Univariate, Discrete}) :: Float64
-    r = zero(Float64)
-    for d in 1:K
-        if K-i < d || K < d
-            continue
-        end
-        r += exp(log(pdf(Ω, d)) + logbinomial(K-i, d) - logbinomial(K, d))
-        if isnan(r) # can't remember why I added this
-            println("r=$r")
-            println(pdf(Omega,d))
-            println(log(pdf(Omega, d)))
-            println(logbinomial(k-i, d))
-            println(logbinomial(k, d))
-            error("foo")
-        end
-    end
-    return log(r) * (K*(1+ϵ))
-end
+# """inner term of ltfailure_lower"""
+# function ltfailure_lower_inner(i::Int; K::Int, ϵ::Number, Ω::Distribution{Univariate, Discrete}) :: Float64
+#     r = zero(Float64)
+#     for d in 1:K
+#         if K-i < d || K < d
+#             continue
+#         end
+#         r += exp(log(pdf(Ω, d)) + logbinomial(K-i, d) - logbinomial(K, d))
+#         if isnan(r) # can't remember why I added this
+#             println("r=$r")
+#             println(pdf(Omega,d))
+#             println(log(pdf(Omega, d)))
+#             println(logbinomial(k-i, d))
+#             println(logbinomial(k, d))
+#             error("foo")
+#         end
+#     end
+#     return log(r) * (K*(1+ϵ))
+# end
 
-"""
-    ltfailure_lower(K::Int, ϵ::Number, Ω::Distribution{Univariate, Discrete})
+# """
+#     ltfailure_lower(K::Int, ϵ::Number, Ω::Distribution{Univariate, Discrete})
 
-Lower-bound the decoding failure probability of LT codes with K input
-symbols, degree distribution Ω, and relative reception overhead ϵ
-(i.e., ϵ=0.2 is a 20% reception overhead).
+# Lower-bound the decoding failure probability of LT codes with K input
+# symbols, degree distribution Ω, and relative reception overhead ϵ
+# (i.e., ϵ=0.2 is a 20% reception overhead).
 
-"""
-function ltfailure_lower(ϵ::Real; K::Integer, Ω::Distribution{Univariate, Discrete})
-    r = zero(Float64)
-    tiny = eps(Float64)
-    for i in 1:div(K, 2)
-        v = zero(r)
-        v += exp(logbinomial(K, 2i-1) + ltfailure_lower_inner(2i-1; K=K, ϵ=ϵ, Ω=Ω))
-        v -= exp(logbinomial(K, 2i) + ltfailure_lower_inner(2i, K=K, ϵ=ϵ, Ω=Ω))
+# """
+# function ltfailure_lower(ϵ::Real; K::Integer, Ω::Distribution{Univariate, Discrete})
+#     r = zero(Float64)
+#     tiny = eps(Float64)
+#     for i in 1:div(K, 2)
+#         v = zero(r)
+#         v += exp(logbinomial(K, 2i-1) + ltfailure_lower_inner(2i-1; K=K, ϵ=ϵ, Ω=Ω))
+#         v -= exp(logbinomial(K, 2i) + ltfailure_lower_inner(2i, K=K, ϵ=ϵ, Ω=Ω))
 
-        # the terms become smaller. stop after reaching the smallest
-        # normally represented float.
-        if v < tiny
-            break
-        end
-        r += v
-    end
-    return r
-end
+#         # the terms become smaller. stop after reaching the smallest
+#         # normally represented float.
+#         if v < tiny
+#             break
+#         end
+#         r += v
+#     end
+#     return r
+# end
 
-function plot_lower(K=100, M=K-2, δ=1e-2)
-    Ω = Soliton(K, M, δ)
-    ϵs = range(0, 0.1, length=10)
-    # fs_ref = ltfailure_lower_reference(K, 0.2, Ω)
-    fs = ltfailure_lower.(ϵs, K=K, Ω=Ω)
-    # plt.semilogy(ϵs, fs_ref, "-s")
-    plt.semilogy(ϵs, fs, "-o")
-    plt.grid()
-    plt.xlim(0, 0.1)
-    plt.ylim(1e-6, 1)
-    return fs
-end
+# function plot_lower(K=100, M=K-2, δ=1e-2)
+#     Ω = Soliton(K, M, δ)
+#     ϵs = range(0, 0.1, length=10)
+#     # fs_ref = ltfailure_lower_reference(K, 0.2, Ω)
+#     fs = ltfailure_lower.(ϵs, K=K, Ω=Ω)
+#     # plt.semilogy(ϵs, fs_ref, "-s")
+#     plt.semilogy(ϵs, fs, "-o")
+#     plt.grid()
+#     plt.xlim(0, 0.1)
+#     plt.ylim(1e-6, 1)
+#     return fs
+# end
