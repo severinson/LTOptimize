@@ -1,4 +1,16 @@
-using PyPlot
+export logbinomial, krawtchouk, upperbound_ltfailure
+
+"""return log(binomial(n, k))"""
+function logbinomial(n::Integer, k::Integer)::Float64
+    k <= n || return -Inf
+    k != n || return zero(Float64)
+    if k > (n - k)
+        rv = logfactorial(n, n-k) - logfactorial(k)
+    else
+        rv = logfactorial(n, k) - logfactorial(n-k)
+    end
+    return rv
+end
 
 """evaluate the krawtchouk polynomial"""
 function krawtchouk(ξ; ν::Integer, ς::Integer, q::Integer)
@@ -7,12 +19,9 @@ function krawtchouk(ξ; ν::Integer, ς::Integer, q::Integer)
     rv = zero(Float64)
     for i in 0:ς
         v1 = (ς-i) * log(q-1)
-        # println("v1=$v1")
         v2 = logbinomial(ξ, i)
-        # println("v2=$v2, ξ=$ξ, i=$i")
         if isinf(v2) continue end
         v3 = logbinomial(ν-ξ, ς-i)
-        # println("v3=$v3")
         if isinf(v3) continue end
         v = v1+v2+v3
         if iszero(rem(i, 2))
@@ -24,56 +33,49 @@ function krawtchouk(ξ; ν::Integer, ς::Integer, q::Integer)
     return rv
 end
 
-"""lt code upper bound on failure probability from Schotsch 2013 (1)"""
-function ltfailure_upper(γ; k, Ω, q)
+"""
+
+Return an upper bound on the decoding failure probability of LT codes
+under optimal erasure decoding (Theorem 1 of Schotsch 2013).
+
+γ: Inverse reception code rate, i.e., the number of received symbols
+divided by the number of source symbols.
+
+k: Number of source symbols.
+
+q: Field size.
+
+ds, ps: Represents the PDF of the degree distribution, with ps[i]
+being the probability of a symbol having degree ds[i]. ps must sum to
+1.
+
+"""
+function upperbound_ltfailure(γ::Real; k::Integer, q::Integer, ds, ps)::Float64
+    2 <= q || throw(DomainError(q, "q must be at least 2, which represents the binary field."))
+    0 < k || throw(DomainError(k, "k must be positive."))
+    length(ds) == length(ps) || throw(ArgumentError("ds and ps must be of equal length."))
+    maximum(ds) <= k || raise(ArgumentError("Degrees larger than k are impossible."))
+    sum(ps) ≈ 1 || raise(ArgumentError("Expected sum(ps)=1, but got $(sum(ps))."))
     rv = 0.0
-    for w in 1:K
+    if γ < 1 return rv end
+    for w in 1:k
         v1 = logbinomial(k, w)
-        # println("v1=$v1")
         if isinf(v1) continue end
-
         v2 = (w-1) * log(q-1)
-
-        # inner term (sum over the distribution)
-        v3 = 0.0
-        for d in 1:k
-            v = pdf(Ω, d)
+        v3 = 0.0 # inner term
+        for (d, p) in zip(ds, ps)
+            v = Float64(p)
             v *= krawtchouk(w; ν=k, ς=d, q=q)
             v /= krawtchouk(0; ν=k, ς=d, q=q)
-            # println("inner v=$v")
             v3 += v
         end
         v3 *= (q-1)/q
         v3 += 1/q
         v3 = k*γ * log(v3)
-        # println("v3=$v3")
 
-        v = v1+v2+v3
-        # println("v=$v")
-        rv += exp(v)
+        rv += exp(v1+v2+v3)
     end
     return max(min(rv, 1.0), 0.0)
-end
-
-"""plot the robust soliton"""
-function plot_distribution(K=300, M=100, δ=1e-3)
-    Ω = Soliton(K, M, δ)
-    xs = 1:1:K
-    plt.plot(xs, pdf.(Ω, xs))
-    return sum(pdf.(Ω, xs))
-end
-
-"""plot the upper bound"""
-function plot_upper(K=300, M=50, δ=1e-1/2)
-    Ω = Soliton(K, M, δ)
-    q = 2
-    γs = range(1.0, 1.1, length=10)
-    fs = ltfailure_upper.(γs, k=K, Ω=Ω, q=q)
-    plt.semilogy(γs, fs)
-    plt.grid()
-    plt.xlim(1.0, 1.1)
-    plt.ylim(1e-6, 1)
-    return
 end
 
 ### lower bound - old, not sure if this is correct ###
