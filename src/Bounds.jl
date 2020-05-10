@@ -33,23 +33,29 @@ function krawtchouk(ξ; ν::Integer, ς::Integer, q::Integer)
 end
 
 """
+    upperbound_ltfailure(γ::Real; k::Integer, q::Integer=2, ds, ps)::Float64
 
 Return an upper bound on the decoding failure probability of LT codes
-under optimal erasure decoding (Theorem 1 of Schotsch 2013).
+under optimal erasure decoding.
 
-γ: Inverse reception code rate, i.e., the number of received symbols
-divided by the number of source symbols.
+Source: Theorem 1, Analysis of LT Codes over Finite Fields under
+Optimal Erasure Decoding, by Birgit Schotsch, Giuliano Garrammone and
+Peter Vary, published in IEEE Communications Letters vol. 9, no. 17, 2013.
 
-k: Number of source symbols.
+# Arguments
 
-q: Field size.
+- `γ::Real`: Inverse reception code rate, i.e., the number of received
+  symbols divided by the number of source symbols.
 
-ds, ps: Represents the PDF of the degree distribution, with ps[i]
-being the probability of a symbol having degree ds[i]. ps must sum to
-1.
+- `k::Integer`: Number of source symbols.
+
+- `q::Integer=2`: Field size.
+
+- `ds`, `ps`: Represents the PDF of the degree distribution, with
+  `ps[i]` being the probability of a symbol having degree `ds[i]`.
 
 """
-function upperbound_ltfailure(γ::Real; k::Integer, q::Integer, ds, ps)::Float64
+function upperbound_ltfailure(γ::Real; k::Integer, q::Integer=2, ds, ps)::Float64
     2 <= q || throw(DomainError(q, "q must be at least 2, which represents the binary field."))
     0 < k || throw(DomainError(k, "k must be positive."))
     length(ds) == length(ps) || throw(ArgumentError("ds and ps must be of equal length."))
