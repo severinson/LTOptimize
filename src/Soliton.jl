@@ -1,23 +1,20 @@
 export Soliton
 
-using StatsBase, Statistics, Distributions
-
 """
-
-Soliton <: Distribution{Univariate, Discrete}
+    Soliton <: Distribution{Univariate, Discrete}
 
 Robust Soliton probability distribution. Construct a distribution with
-Soliton(K, mode, delta).
+`Soliton(K, mode, delta)`.
 
-Arguments
+# Arguments
 
-* K::Int: Number of symbols.
+- `K::Integer`: Number of source symbols.
 
-* mode::Int: Location of the spike introduced by the robust
-  component. Must be in the range 1 <= mode <= K.
+- `mode::Integer`: Location of the spike introduced by the robust
+  component. Must be in the range `1 <= mode <= K`.
 
-* delta::Real: Smaller delta decreases decoder failure probability by
-  increasing the average degree. Must be in the range 0 < delta < 1.
+- `delta::Real`: Smaller delta decreases decoder failure probability
+  by increasing the average degree. Must be in the range `0 < delta < 1`.
 
 """
 struct Soliton <: Distribution{Univariate, Discrete}
