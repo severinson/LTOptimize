@@ -1,7 +1,7 @@
 # LTOptimize
 
 Luby Transorm code bounds in Julia. Implements the upper and lower
-bound on word erasure probability found in Theorem 1 and 2,
+bound on word erasure probability found in Theorem 1 and 5,
 respectively, of
 
 > Analysis of LT Codes over Finite Fields under Optimal Erasure
