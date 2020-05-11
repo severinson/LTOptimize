@@ -1,4 +1,7 @@
 using PyPlot
+using SpecialFunctions
+
+include("Soliton.jl")
 
 """plot the robust Soliton distribution"""
 function plot_distribution(k=600, M=40, δ=1e-6)
@@ -8,17 +11,20 @@ function plot_distribution(k=600, M=40, δ=1e-6)
     return sum(pdf.(Ω, xs))
 end
 
-"""plot the upper bound"""
-function plot_upper(k=600, M=40, δ=1e-6)
+function plot_bounds(k=600, M=40, δ=1e-6)
     Ω = Soliton(k, M, δ)
-    ps = pdf.(Ω, 1:k)
-    ds = [d for d in 1:k if ps[d]>1e-3]
-    @views ps[ds] ./= sum(ps[ds])
-    γs = range(1, 1.1, length=20)
-    for q in [2, 4, 8]
-        @views fs = upperbound_ltfailure.(γs, k=k, q=q, ds=ds, ps=ps[ds])
+    ds = [d for d in 1:k if pdf(Ω, d)>1e-3]
+    ps = pdf.(Ω, ds)
+    ps ./= sum(ps)
+
+    γs = range(1, 1.02, length=20)
+    for q in [2, 3, 4, 5, 6, 7, 8]
+        @views fs = upperbound_ltfailure.(γs, k=k, q=q, ds=ds, ps=ps)
         plt.semilogy(k.*(γs.-1), fs, ".-", label="GF($q)")
     end
+    fs = lowerbound_ltfailure.(γs, k=k, ds=ds, ps=ps)
+    plt.semilogy(k.*(γs.-1), fs, "k-", label="LB")
+
     plt.grid()
     # plt.xlim(γs[1], γs[end])
     plt.ylim(1e-6, 1)
