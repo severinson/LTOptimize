@@ -11,26 +11,23 @@ function logbinomial(n::Integer, k::Integer)::Float64
     end
 end
 
-"""Evaluate the krawtchouk polynomial."""
-function krawtchouk(ξ; ν::Integer, ς::Integer, q::Integer)
+"""Return the i-th term of the sum making up the krawtchouk polynomial."""
+function krawtchouk_term(i::Integer; ξ::Real, ν::Integer, ς::Integer, q::Integer)::Float64
     0 <= ς <= ν || throw(ArgumentError("ς must be in [0, ν]"))
     ξ >= 0 || throw(DomainError(ξ, "ξ must be non-negative"))
-    rv = zero(Float64)
-    for i in 0:ς
-        v1 = (ς-i) * log(q-1)
-        v2 = logbinomial(ξ, i)
-        if isinf(v2) continue end
-        v3 = logbinomial(ν-ξ, ς-i)
-        if isinf(v3) continue end
-        v = v1+v2+v3
-        if iseven(i)
-            rv += exp(v)
-        else
-            rv -= exp(v)
-        end
+    v1 = (ς-i) * log(q-1)
+    v2 = logbinomial(ξ, i)
+    v3 = logbinomial(ν-ξ, ς-i)
+    v = v1+v2+v3
+    if iseven(i)
+        return exp(v)
+    else
+        return -exp(v)
     end
-    return rv
 end
+
+"""Evaluate the krawtchouk polynomial."""
+krawtchouk(ξ; ν::Integer, ς::Integer, q::Integer) = sum(krawtchouk_term(i; ξ=ξ, ν=ν, ς=ς, q=q) for i in 0:ς)
 
 """
     upperbound_ltfailure(γ::Real; k::Integer, q::Integer=2, ds, ps)::Float64
@@ -56,6 +53,33 @@ Peter Vary, published in IEEE Communications Letters vol. 9, no. 17, 2013.
 
 """
 function upperbound_ltfailure(γ::Real; k::Integer, q::Integer=2, ds, ps)::Float64
+    2 <= q || throw(DomainError(q, "q must be at least 2, which represents the binary field."))
+    0 < k || throw(DomainError(k, "k must be positive."))
+    length(ds) == length(ps) || throw(ArgumentError("ds and ps must be of equal length."))
+    maximum(ds) <= k || raise(ArgumentError("Degrees larger than k are impossible."))
+    sum(ps) ≈ 1 || raise(ArgumentError("Expected sum(ps)=1, but got $(sum(ps))."))
+    rv = 0.0
+    if γ < 1 return rv end
+    for w in 1:k
+        v1 = logbinomial(k, w)
+        if isinf(v1) continue end
+        v2 = (w-1) * log(q-1)
+        v3 = 0.0 # inner term
+        for (d, p) in zip(ds, ps)
+            v = Float64(p)
+            v *= krawtchouk(w; ν=k, ς=d, q=q)
+            v /= krawtchouk(0; ν=k, ς=d, q=q)
+            v3 += v
+        end
+        v3 *= (q-1)/q
+        v3 += 1/q
+        v3 = k*γ * log(v3)
+        rv += exp(v1+v2+v3)
+    end
+    return max(min(rv, 1.0), 0.0)
+end
+
+function upperbound_ltfailure2(γ::Real; k::Integer, q::Integer=2, ds, ps)::Float64
     2 <= q || throw(DomainError(q, "q must be at least 2, which represents the binary field."))
     0 < k || throw(DomainError(k, "k must be positive."))
     length(ds) == length(ps) || throw(ArgumentError("ds and ps must be of equal length."))
