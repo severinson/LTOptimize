@@ -1,4 +1,4 @@
-export logbinomial, krawtchouk, upperbound_ltfailure
+export upperbound_ltfailure, lowerbound_ltfailure
 
 """Return log(binomial(n, k))."""
 function logbinomial(n::Integer, k::Integer)::Float64
@@ -23,7 +23,7 @@ function krawtchouk(ξ; ν::Integer, ς::Integer, q::Integer)
         v3 = logbinomial(ν-ξ, ς-i)
         if isinf(v3) continue end
         v = v1+v2+v3
-        if iszero(rem(i, 2))
+        if iseven(i)
             rv += exp(v)
         else
             rv -= exp(v)
@@ -77,8 +77,46 @@ function upperbound_ltfailure(γ::Real; k::Integer, q::Integer=2, ds, ps)::Float
         v3 *= (q-1)/q
         v3 += 1/q
         v3 = k*γ * log(v3)
-
         rv += exp(v1+v2+v3)
+    end
+    return max(min(rv, 1.0), 0.0)
+end
+
+"""
+    lowerbound_ltfailure(γ::Real; k::Integer, ds, ps)::Float64
+
+Return a lower bound on the decoding failure probability of LT codes
+under optimal erasure decoding.
+
+Source: Theorem 5, Analysis of LT Codes over Finite Fields under
+Optimal Erasure Decoding, by Birgit Schotsch, Giuliano Garrammone and
+Peter Vary, published in IEEE Communications Letters vol. 9, no. 17, 2013.
+
+# Arguments
+
+- `γ::Real`: Inverse reception code rate, i.e., the number of received
+  symbols divided by the number of source symbols.
+
+- `k::Integer`: Number of source symbols.
+
+- `ds`, `ps`: Represents the PDF of the degree distribution, with
+  `ps[i]` being the probability of a symbol having degree `ds[i]`.
+
+"""
+function lowerbound_ltfailure(γ::Real; k::Integer, ds, ps)::Float64
+    rv = 0.0
+    for i in 1:k
+        v = 0.0
+        for (d, p) in zip(ds, ps)
+            v += exp(log(p) + logbinomial(k-i, d) - logbinomial(k, d))
+        end
+        v = k*γ*log(v)
+        v += logbinomial(k, i)
+        if iseven(i+1)
+            rv += exp(v)
+        else
+            rv -= exp(v)
+        end
     end
     return max(min(rv, 1.0), 0.0)
 end
